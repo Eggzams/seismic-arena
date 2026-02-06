@@ -1,54 +1,86 @@
 import React, { useEffect, useRef, useState } from "react";
-import { io } from "socket.io-client";
 import { motion } from "framer-motion";
 
-// const socket = io("https://your-multiplayer-server.example.com");
+// Dummy socket (multiplayer baad me add karenge)
+const socket = { on: () => {}, emit: () => {} };
 
 export default function SeismicBattleGame() {
+
   const [room, setRoom] = useState("");
   const [joined, setJoined] = useState(false);
+
   const [mass, setMass] = useState(300);
   const [stiffness, setStiffness] = useState(1);
   const [zone, setZone] = useState(3);
   const [soil, setSoil] = useState(1);
+
   const [players, setPlayers] = useState({});
+
   const waveRef = useRef(null);
 
+  // Simple seismic factors
   const zoneFactor = [0, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0][zone];
   const soilFactor = [1, 1.1, 1.25, 1.4][soil];
-  const baseShear = Math.round(mass * zoneFactor * soilFactor / stiffness);
+
+  const baseShear = Math.round(
+    (mass * zoneFactor * soilFactor) / stiffness
+  );
 
   useEffect(() => {
     socket.on("updatePlayers", data => setPlayers(data));
-    return () => socket.off("updatePlayers");
   }, []);
-
-  useEffect(() => {
-    if (joined) {
-      socket.emit("playerUpdate", { room, mass, stiffness, zone, soil, baseShear });
-    }
-  }, [mass, stiffness, zone, soil, baseShear, joined]);
 
   const joinRoom = () => {
     if (!room) return;
-    socket.emit("joinRoom", room);
     setJoined(true);
   };
 
+  // ---------------- ROOM SCREEN ----------------
+
   if (!joined) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="bg-white p-8 rounded-2xl shadow space-y-4">
-          <h1 className="text-3xl font-bold">🌐 Seismic Arena</h1>
+      <div style={{
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f3f4f6"
+      }}>
+        <div style={{
+          background: "white",
+          padding: 30,
+          borderRadius: 20,
+          boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
+          width: 300,
+          textAlign: "center"
+        }}>
+          <h1>🌐 Seismic Arena</h1>
+
           <input
-            className="border p-2 rounded w-full"
             placeholder="Enter Room Code"
             value={room}
             onChange={e => setRoom(e.target.value)}
+            style={{
+              width: "100%",
+              padding: 10,
+              marginTop: 10,
+              borderRadius: 10,
+              border: "1px solid #ccc"
+            }}
           />
+
           <button
             onClick={joinRoom}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-xl w-full"
+            style={{
+              marginTop: 15,
+              width: "100%",
+              padding: 10,
+              borderRadius: 12,
+              background: "#4f46e5",
+              color: "white",
+              border: "none",
+              cursor: "pointer"
+            }}
           >
             Join Battle
           </button>
@@ -57,67 +89,109 @@ export default function SeismicBattleGame() {
     );
   }
 
+  // ---------------- MAIN GAME ----------------
+
   return (
-    <div className="p-6 max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
+    <div style={{
+      padding: 30,
+      maxWidth: 1200,
+      margin: "auto",
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 20
+    }}>
 
-      <div className="md:col-span-1 bg-white rounded-2xl shadow p-5 space-y-3">
-        <h2 className="text-2xl font-bold">🏗️ Your Building</h2>
+      {/* BUILDING CONTROL */}
 
-        <label>Mass: {mass}</label>
-        <input type="range" min="100" max="500" value={mass} onChange={e => setMass(+e.target.value)} className="w-full" />
+      <div style={cardStyle}>
+        <h2>🏗️ Your Building</h2>
 
-        <label>Stiffness: {stiffness}</label>
-        <input type="range" min="0.5" max="2" step="0.1" value={stiffness} onChange={e => setStiffness(+e.target.value)} className="w-full" />
+        <p>Mass: {mass} kN</p>
+        <input type="range" min="100" max="500"
+          value={mass}
+          onChange={e => setMass(+e.target.value)}
+        />
 
-        <label>Zone: {zone}</label>
-        <input type="range" min="1" max="6" value={zone} onChange={e => setZone(+e.target.value)} className="w-full" />
+        <p>Stiffness: {stiffness}</p>
+        <input type="range" min="0.5" max="2" step="0.1"
+          value={stiffness}
+          onChange={e => setStiffness(+e.target.value)}
+        />
 
-        <label>Soil: {['A','B','C','D'][soil]}</label>
-        <input type="range" min="0" max="3" value={soil} onChange={e => setSoil(+e.target.value)} className="w-full" />
+        <p>Zone: {zone}</p>
+        <input type="range" min="1" max="6"
+          value={zone}
+          onChange={e => setZone(+e.target.value)}
+        />
 
-        <div className="bg-gray-100 rounded-xl p-4 text-center">
-          <p>Your Base Shear</p>
-          <p className="text-4xl font-bold">{baseShear} kN</p>
+        <p>Soil: {["A","B","C","D"][soil]}</p>
+        <input type="range" min="0" max="3"
+          value={soil}
+          onChange={e => setSoil(+e.target.value)}
+        />
+
+        <div style={{
+          background: "#f3f4f6",
+          padding: 15,
+          borderRadius: 15,
+          marginTop: 15,
+          textAlign: "center"
+        }}>
+          <p>Base Shear</p>
+          <h1>{baseShear} kN</h1>
         </div>
       </div>
 
-      <div className="md:col-span-1 bg-white rounded-2xl shadow p-5">
-        <h2 className="text-2xl font-bold mb-3">🌊 Earthquake Wave</h2>
+      {/* EARTHQUAKE WAVE */}
+
+      <div style={cardStyle}>
+        <h2>🌊 Earthquake Motion</h2>
+
         <motion.div
           ref={waveRef}
-          className="h-40 bg-indigo-100 rounded-xl"
-          animate={{ x: [0, 20, -20, 0] }}
+          style={{
+            height: 160,
+            background: "#c7d2fe",
+            borderRadius: 20
+          }}
+          animate={{ x: [0, 25, -25, 0] }}
           transition={{ repeat: Infinity, duration: 0.6 }}
         />
-        <p className="text-sm text-gray-600 mt-2">Intensity increases with zone</p>
+
+        <p style={{ fontSize: 12, color: "#555", marginTop: 10 }}>
+          Higher zone = stronger shaking
+        </p>
       </div>
 
-      <div className="md:col-span-1 bg-white rounded-2xl shadow p-5">
-        <h2 className="text-2xl font-bold mb-3">🏆 Leaderboard</h2>
-        <div className="space-y-2">
-          {Object.entries(players)
-            .sort((a, b) => a[1].baseShear - b[1].baseShear)
-            .map(([id, p], i) => (
-              <div key={id} className="flex justify-between border rounded-xl p-2">
-                <span>#{i + 1} Player {id.slice(0,4)}</span>
-                <span className="font-bold">{p.baseShear}</span>
-              </div>
-            ))}
+      {/* LEADERBOARD (LOCAL DEMO) */}
+
+      <div style={cardStyle}>
+        <h2>🏆 Leaderboard (Demo)</h2>
+
+        <div style={{
+          padding: 10,
+          border: "1px dashed #ccc",
+          borderRadius: 12
+        }}>
+          <p>You</p>
+          <b>{baseShear} kN</b>
         </div>
+
+        <p style={{fontSize:12, color:"#666", marginTop:10}}>
+          Multiplayer will show real players here
+        </p>
       </div>
 
     </div>
   );
 }
 
-/* Backend sample logic
 
-io.on("connection", socket => {
-  socket.on("joinRoom", room => socket.join(room));
+// ---------------- STYLES ----------------
 
-  socket.on("playerUpdate", data => {
-    players[socket.id] = data;
-    io.to(data.room).emit("updatePlayers", players);
-  });
-});
-*/
+const cardStyle = {
+  background: "white",
+  padding: 20,
+  borderRadius: 20,
+  boxShadow: "0 10px 20px rgba(0,0,0,0.08)"
+};
