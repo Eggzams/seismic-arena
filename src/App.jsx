@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { motion } from "framer-motion";
 
-const socket = io("https://your-multiplayer-server.example.com");
+// const socket = io("https://your-multiplayer-server.example.com");
 
 export default function SeismicBattleGame() {
   const [room, setRoom] = useState("");
